@@ -8,89 +8,131 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Base colors - GIS/Cartographic theme */
+    --background: 210 24% 98%;
+    --foreground: 210 18% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 210 18% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 210 18% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary - Cartographic Blue */
+    --primary: 207 90% 45%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 207 85% 40%;
+    --primary-glow: 207 100% 75%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary - Professional Teal */
+    --secondary: 180 25% 85%;
+    --secondary-foreground: 210 18% 25%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 210 15% 92%;
+    --muted-foreground: 210 12% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent - Spatial Data Green */
+    --accent: 165 60% 45%;
+    --accent-foreground: 0 0% 100%;
+    --accent-hover: 165 55% 40%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 210 20% 88%;
+    --input: 210 20% 88%;
+    --ring: 207 90% 45%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
+    /* Sidebar - Workflow Panel */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 210 18% 25%;
+    --sidebar-primary: 207 90% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 15% 96%;
+    --sidebar-accent-foreground: 210 18% 25%;
+    --sidebar-border: 210 20% 90%;
+    --sidebar-ring: 207 90% 45%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* GIS/Mapping specific colors */
+    --map-background: 210 30% 96%;
+    --zone-overlay: 207 90% 45% / 0.15;
+    --drawing-active: 165 60% 45%;
+    --coordinate-input: 210 15% 95%;
+    
+    /* Gradients */
+    --gradient-header: linear-gradient(135deg, hsl(207 90% 45%), hsl(180 60% 45%));
+    --gradient-sidebar: linear-gradient(180deg, hsl(0 0% 100%), hsl(210 15% 98%));
+    --gradient-map-overlay: linear-gradient(180deg, transparent 0%, hsl(207 90% 45% / 0.05) 100%);
+    
+    /* Shadows */
+    --shadow-sidebar: 0 4px 20px hsl(207 90% 45% / 0.08);
+    --shadow-card: 0 2px 12px hsl(210 18% 15% / 0.06);
+    --shadow-map: inset 0 0 0 1px hsl(210 20% 88%);
+    
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Dark theme for GIS/Cartographic interface */
+    --background: 210 25% 8%;
+    --foreground: 210 15% 85%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 210 25% 10%;
+    --card-foreground: 210 15% 85%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 210 25% 10%;
+    --popover-foreground: 210 15% 85%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 207 85% 55%;
+    --primary-foreground: 210 25% 8%;
+    --primary-hover: 207 80% 50%;
+    --primary-glow: 207 100% 70%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 210 20% 18%;
+    --secondary-foreground: 210 15% 75%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 210 20% 15%;
+    --muted-foreground: 210 12% 55%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 165 55% 50%;
+    --accent-foreground: 210 25% 8%;
+    --accent-hover: 165 50% 45%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 210 15% 85%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --border: 210 20% 20%;
+    --input: 210 20% 20%;
+    --ring: 207 85% 55%;
+
+    --sidebar-background: 210 25% 10%;
+    --sidebar-foreground: 210 15% 75%;
+    --sidebar-primary: 207 85% 55%;
+    --sidebar-primary-foreground: 210 25% 8%;
+    --sidebar-accent: 210 20% 15%;
+    --sidebar-accent-foreground: 210 15% 75%;
+    --sidebar-border: 210 20% 18%;
+    --sidebar-ring: 207 85% 55%;
+
+    /* Dark mode GIS colors */
+    --map-background: 210 25% 12%;
+    --zone-overlay: 207 85% 55% / 0.2;
+    --drawing-active: 165 55% 50%;
+    --coordinate-input: 210 20% 15%;
+    
+    /* Dark gradients */
+    --gradient-header: linear-gradient(135deg, hsl(207 85% 35%), hsl(180 55% 35%));
+    --gradient-sidebar: linear-gradient(180deg, hsl(210 25% 10%), hsl(210 25% 8%));
+    --gradient-map-overlay: linear-gradient(180deg, transparent 0%, hsl(207 85% 55% / 0.08) 100%);
+    
+    /* Dark shadows */
+    --shadow-sidebar: 0 4px 20px hsl(207 85% 55% / 0.12);
+    --shadow-card: 0 2px 12px hsl(210 25% 5% / 0.3);
+    --shadow-map: inset 0 0 0 1px hsl(210 20% 20%);
   }
 }
 

@@ -26,7 +26,9 @@ export default {
 				foreground: 'hsl(var(--foreground))',
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
+					foreground: 'hsl(var(--primary-foreground))',
+					hover: 'hsl(var(--primary-hover))',
+					glow: 'hsl(var(--primary-glow))'
 				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
@@ -42,7 +44,8 @@ export default {
 				},
 				accent: {
 					DEFAULT: 'hsl(var(--accent))',
-					foreground: 'hsl(var(--accent-foreground))'
+					foreground: 'hsl(var(--accent-foreground))',
+					hover: 'hsl(var(--accent-hover))'
 				},
 				popover: {
 					DEFAULT: 'hsl(var(--popover))',
@@ -61,7 +64,26 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				// GIS/Mapping specific colors
+				'map-bg': 'hsl(var(--map-background))',
+				'zone-overlay': 'hsl(var(--zone-overlay))',
+				'drawing-active': 'hsl(var(--drawing-active))',
+				'coordinate-input': 'hsl(var(--coordinate-input))'
+			},
+			backgroundImage: {
+				'gradient-header': 'var(--gradient-header)',
+				'gradient-sidebar': 'var(--gradient-sidebar)',
+				'gradient-map-overlay': 'var(--gradient-map-overlay)'
+			},
+			boxShadow: {
+				'sidebar': 'var(--shadow-sidebar)',
+				'card-gis': 'var(--shadow-card)',
+				'map': 'var(--shadow-map)'
+			},
+			transitionTimingFunction: {
+				'smooth': 'var(--transition-smooth)',
+				'bounce': 'var(--transition-bounce)'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
