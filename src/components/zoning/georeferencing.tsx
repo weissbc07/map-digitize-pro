@@ -9,14 +9,22 @@ import { MapPin, Eye, EyeOff } from "lucide-react";
 interface GeoreferencingProps {
   onGeoreference: (bounds: [number, number, number, number]) => void;
   disabled?: boolean;
+  overlayVisible: boolean;
+  onToggleOverlay: () => void;
+  overlayReady: boolean;
 }
 
-export const Georeferencing = ({ onGeoreference, disabled }: GeoreferencingProps) => {
+export const Georeferencing = ({
+  onGeoreference,
+  disabled,
+  overlayVisible,
+  onToggleOverlay,
+  overlayReady
+}: GeoreferencingProps) => {
   const [swLat, setSwLat] = useState("44.8200");
   const [swLng, setSwLng] = useState("-87.4000");
   const [neLat, setNeLat] = useState("44.8600");
   const [neLng, setNeLng] = useState("-87.3400");
-  const [overlayVisible, setOverlayVisible] = useState(true);
 
   const validateCoordinates = () => {
     const sw = [parseFloat(swLat), parseFloat(swLng)];
@@ -150,7 +158,8 @@ export const Georeferencing = ({ onGeoreference, disabled }: GeoreferencingProps
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setOverlayVisible(!overlayVisible)}
+            onClick={onToggleOverlay}
+            disabled={!overlayReady}
             className="flex items-center gap-1"
           >
             {overlayVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { StepIndicator } from "@/components/ui/step-indicator";
@@ -19,6 +20,9 @@ const Index = () => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [featureCount, setFeatureCount] = useState(0);
   const [map, setMap] = useState<any>(null);
+  const [overlayLayer, setOverlayLayer] = useState<any>(null);
+  const [overlayVisible, setOverlayVisible] = useState(true);
+  const [overlayReady, setOverlayReady] = useState(false);
 
   const steps = [
     {
@@ -104,16 +108,14 @@ const Index = () => {
     if (!map || !pdfImageData) return;
 
     const ol = (window as any).ol;
-    
+
     // Remove existing overlay layer
-    map.getLayers().forEach((layer: any) => {
-      if (layer.get('name') === 'pdf-overlay') {
-        map.removeLayer(layer);
-      }
-    });
+    if (overlayLayer) {
+      map.removeLayer(overlayLayer);
+    }
 
     // Add new overlay layer
-    const overlayLayer = new ol.layer.Image({
+    const newOverlay = new ol.layer.Image({
       source: new ol.source.ImageStatic({
         url: pdfImageData,
         imageExtent: ol.proj.transformExtent(bounds, 'EPSG:4326', 'EPSG:3857'),
@@ -122,14 +124,28 @@ const Index = () => {
       name: 'pdf-overlay'
     });
 
-    map.addLayer(overlayLayer);
-    
+    map.addLayer(newOverlay);
+    setOverlayLayer(newOverlay);
+    setOverlayVisible(true);
+    setOverlayReady(true);
+
     // Fit view to overlay extent
     const extent = ol.proj.transformExtent(bounds, 'EPSG:4326', 'EPSG:3857');
     map.getView().fit(extent, { padding: [20, 20, 20, 20] });
 
     setCompletedSteps(prev => [...prev, "georeference"]);
     setCurrentStep("zones");
+  };
+
+  const handleToggleOverlay = () => {
+    if (!overlayLayer) {
+      toast.error("No overlay to toggle");
+      return;
+    }
+    const newVisible = !overlayLayer.getVisible();
+    overlayLayer.setVisible(newVisible);
+    setOverlayVisible(newVisible);
+    toast.info(newVisible ? "Overlay shown" : "Overlay hidden");
   };
 
   const handleStartDrawing = () => {
@@ -315,9 +331,12 @@ const Index = () => {
               )}
 
               {currentStep === "georeference" && (
-                <Georeferencing 
+                <Georeferencing
                   onGeoreference={handleGeoreference}
                   disabled={!pdfImageData}
+                  overlayVisible={overlayVisible}
+                  onToggleOverlay={handleToggleOverlay}
+                  overlayReady={overlayReady}
                 />
               )}
 
