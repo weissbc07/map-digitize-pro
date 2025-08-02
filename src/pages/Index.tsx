@@ -7,6 +7,7 @@ import { Georeferencing } from "@/components/zoning/georeferencing";
 import { ZoningTypes, type ZoningType } from "@/components/zoning/zoning-types";
 import { DrawingTools } from "@/components/zoning/drawing-tools";
 import { ExportTools } from "@/components/zoning/export-tools";
+import { OverlayControls } from "@/components/zoning/overlay-controls";
 import { defaultZoningTypes } from "@/data/zoning-types";
 
 const Index = () => {
@@ -108,13 +109,12 @@ const Index = () => {
     if (!map || !pdfImageData) return;
 
     const ol = (window as any).ol;
-
-    // Remove existing overlay layer
+    
+    // Remove existing overlay if present
     if (overlayLayer) {
       map.removeLayer(overlayLayer);
     }
 
-    // Add new overlay layer
     const newOverlay = new ol.layer.Image({
       source: new ol.source.ImageStatic({
         url: pdfImageData,
@@ -129,12 +129,94 @@ const Index = () => {
     setOverlayVisible(true);
     setOverlayReady(true);
 
+    // Store original bounds for reset
+    map.set('originalBounds', bounds);
+    map.set('currentScale', 1);
+    map.set('currentOpacity', 0.7);
+    map.set('currentRotation', 0);
+    map.set('positionOffset', { x: 0, y: 0 });
+
     // Fit view to overlay extent
     const extent = ol.proj.transformExtent(bounds, 'EPSG:4326', 'EPSG:3857');
     map.getView().fit(extent, { padding: [20, 20, 20, 20] });
 
     setCompletedSteps(prev => [...prev, "georeference"]);
     setCurrentStep("zones");
+  };
+
+  const handleOverlayScaleChange = (scale: number) => {
+    if (!map || !overlayLayer) return;
+
+    const ol = (window as any).ol;
+    const originalBounds = map.get('originalBounds');
+    const positionOffset = map.get('positionOffset') || { x: 0, y: 0 };
+    
+    if (originalBounds) {
+      // Calculate center point
+      const centerX = (originalBounds[0] + originalBounds[2]) / 2;
+      const centerY = (originalBounds[1] + originalBounds[3]) / 2;
+      
+      // Calculate scaled bounds around center
+      const width = (originalBounds[2] - originalBounds[0]) * scale;
+      const height = (originalBounds[3] - originalBounds[1]) * scale;
+      
+      const newBounds = [
+        centerX - width/2 + positionOffset.x,
+        centerY - height/2 + positionOffset.y,
+        centerX + width/2 + positionOffset.x,
+        centerY + height/2 + positionOffset.y
+      ];
+
+      const imageExtent = ol.proj.transformExtent(newBounds, 'EPSG:4326', 'EPSG:3857');
+      overlayLayer.getSource().setImageExtent(imageExtent);
+      map.set('currentScale', scale);
+    }
+  };
+
+  const handleOverlayOpacityChange = (opacity: number) => {
+    if (!overlayLayer) return;
+    overlayLayer.setOpacity(opacity);
+    map?.set('currentOpacity', opacity);
+  };
+
+  const handleOverlayPositionChange = (deltaX: number, deltaY: number) => {
+    if (!map || !overlayLayer) return;
+
+    const ol = (window as any).ol;
+    const originalBounds = map.get('originalBounds');
+    const currentScale = map.get('currentScale') || 1;
+    const currentOffset = map.get('positionOffset') || { x: 0, y: 0 };
+    
+    if (originalBounds) {
+      const newOffset = {
+        x: currentOffset.x + deltaX,
+        y: currentOffset.y + deltaY
+      };
+
+      const centerX = (originalBounds[0] + originalBounds[2]) / 2;
+      const centerY = (originalBounds[1] + originalBounds[3]) / 2;
+      const width = (originalBounds[2] - originalBounds[0]) * currentScale;
+      const height = (originalBounds[3] - originalBounds[1]) * currentScale;
+      
+      const newBounds = [
+        centerX - width/2 + newOffset.x,
+        centerY - height/2 + newOffset.y,
+        centerX + width/2 + newOffset.x,
+        centerY + height/2 + newOffset.y
+      ];
+
+      const imageExtent = ol.proj.transformExtent(newBounds, 'EPSG:4326', 'EPSG:3857');
+      overlayLayer.getSource().setImageExtent(imageExtent);
+      map.set('positionOffset', newOffset);
+    }
+  };
+
+  const handleOverlayRotationChange = (rotation: number) => {
+    // Note: OpenLayers Image layers don't support rotation directly
+    // This would require more complex implementation with canvas manipulation
+    // For now, we'll store the rotation value for potential future use
+    map?.set('currentRotation', rotation);
+    toast.info("Rotation feature coming soon - use position and scale for now");
   };
 
   const handleToggleOverlay = () => {
@@ -331,13 +413,27 @@ const Index = () => {
               )}
 
               {currentStep === "georeference" && (
-                <Georeferencing
-                  onGeoreference={handleGeoreference}
-                  disabled={!pdfImageData}
-                  overlayVisible={overlayVisible}
-                  onToggleOverlay={handleToggleOverlay}
-                  overlayReady={overlayReady}
-                />
+                <div className="space-y-4">
+                  <Georeferencing
+                    onGeoreference={handleGeoreference}
+                    disabled={!pdfImageData}
+                    overlayVisible={overlayVisible}
+                    onToggleOverlay={handleToggleOverlay}
+                    overlayReady={overlayReady}
+                  />
+                  
+                  {overlayReady && (
+                    <OverlayControls
+                      onScaleChange={handleOverlayScaleChange}
+                      onOpacityChange={handleOverlayOpacityChange}
+                      onPositionChange={handleOverlayPositionChange}
+                      onRotationChange={handleOverlayRotationChange}
+                      overlayVisible={overlayVisible}
+                      onToggleOverlay={handleToggleOverlay}
+                      overlayReady={overlayReady}
+                    />
+                  )}
+                </div>
               )}
 
               {(currentStep === "zones" || completedSteps.includes("zones")) && (
