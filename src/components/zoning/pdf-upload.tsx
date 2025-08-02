@@ -62,8 +62,13 @@ export const PDFUpload = ({ onPDFUploaded }: PDFUploadProps) => {
     setUploadedFile(file);
 
     try {
-      // Set worker source for PDF.js
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+      // Set worker source for PDF.js with proper Vite handling
+      if (typeof pdfjsLib.GlobalWorkerOptions !== 'undefined') {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+          'pdfjs-dist/build/pdf.worker.min.mjs',
+          import.meta.url
+        ).toString();
+      }
 
       setUploadProgress(40);
 
