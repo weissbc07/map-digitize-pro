@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Upload, FileText, X } from "lucide-react";
+import * as pdfjsLib from "pdfjs-dist";
 
 interface PDFUploadProps {
   onPDFUploaded: (file: File, imageData: string) => void;
@@ -61,11 +62,8 @@ export const PDFUpload = ({ onPDFUploaded }: PDFUploadProps) => {
     setUploadedFile(file);
 
     try {
-      // Load PDF.js dynamically
-      const pdfjsLib = (window as any).pdfjsLib;
-      if (!pdfjsLib) {
-        throw new Error("PDF.js library not loaded");
-      }
+      // Set worker source for PDF.js
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
       setUploadProgress(40);
 
@@ -86,7 +84,7 @@ export const PDFUpload = ({ onPDFUploaded }: PDFUploadProps) => {
       canvas.width = viewport.width;
 
       // Render page
-      await page.render({ canvasContext: context, viewport }).promise;
+      await page.render({ canvasContext: context, viewport, canvas }).promise;
       
       setUploadProgress(80);
 
