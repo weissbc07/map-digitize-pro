@@ -51,40 +51,46 @@ const Index = () => {
   // Initialize OpenLayers map
   useEffect(() => {
     const initMap = async () => {
-      // Wait for OpenLayers to load
-      while (!(window as any).ol) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+      try {
+        // Check if OpenLayers is available
+        if (!(window as any).ol) {
+          throw new Error("OpenLayers library not loaded");
+        }
+
+        const ol = (window as any).ol;
+        
+        const newMap = new ol.Map({
+          target: mapRef.current,
+          layers: [
+            new ol.layer.Tile({
+              source: new ol.source.OSM()
+            })
+          ],
+          view: new ol.View({
+            center: ol.proj.fromLonLat([-87.3700, 44.8400]), // Sturgeon Bay center
+            zoom: 13
+          }),
+          controls: ol.control.defaults.defaults().extend([
+            new ol.control.ScaleLine(),
+            new ol.control.MousePosition({
+              coordinateFormat: ol.coordinate.createStringXY(4),
+              projection: 'EPSG:4326',
+              className: 'custom-mouse-position',
+              target: document.getElementById('mouse-position'),
+            })
+          ])
+        });
+
+        setMap(newMap);
+        toast.success("Map initialized successfully!");
+      } catch (error) {
+        console.error("Failed to initialize map:", error);
+        toast.error("Failed to load map. Please refresh the page.");
       }
-
-      const ol = (window as any).ol;
-      
-      const newMap = new ol.Map({
-        target: mapRef.current,
-        layers: [
-          new ol.layer.Tile({
-            source: new ol.source.OSM()
-          })
-        ],
-        view: new ol.View({
-          center: ol.proj.fromLonLat([-87.3700, 44.8400]), // Sturgeon Bay center
-          zoom: 13
-        }),
-        controls: ol.control.defaults.defaults().extend([
-          new ol.control.ScaleLine(),
-          new ol.control.MousePosition({
-            coordinateFormat: ol.coordinate.createStringXY(4),
-            projection: 'EPSG:4326',
-            className: 'custom-mouse-position',
-            target: document.getElementById('mouse-position'),
-          })
-        ])
-      });
-
-      setMap(newMap);
-      toast.success("Map initialized successfully!");
     };
 
-    initMap();
+    // Add a small delay to ensure DOM is ready
+    setTimeout(initMap, 100);
   }, []);
 
   const handlePDFUploaded = (file: File, imageData: string) => {
@@ -278,10 +284,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-background/95">
-      {/* Load external libraries */}
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/openlayers/8.2.0/ol.css" />
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/openlayers/8.2.0/dist/ol.js"></script>
 
       <div className="flex h-screen">
         {/* Sidebar */}
