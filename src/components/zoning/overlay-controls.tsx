@@ -3,8 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Move, RotateCw, ZoomIn, ZoomOut, Eye, EyeOff } from "lucide-react";
+import { Move, RotateCw, ZoomIn, ZoomOut, Eye, EyeOff, Sparkles, Loader2 } from "lucide-react";
+import { calculateAlignment, type AlignmentSuggestion } from "@/services/ai-vision";
 
 interface OverlayControlsProps {
   onScaleChange: (scale: number) => void;
@@ -14,6 +17,9 @@ interface OverlayControlsProps {
   overlayVisible: boolean;
   onToggleOverlay: () => void;
   overlayReady: boolean;
+  isAIEnabled: boolean;
+  pdfImageUrl?: string;
+  onAutoAlign?: () => Promise<void>;
 }
 
 export const OverlayControls = ({
@@ -23,11 +29,16 @@ export const OverlayControls = ({
   onRotationChange,
   overlayVisible,
   onToggleOverlay,
-  overlayReady
+  overlayReady,
+  isAIEnabled,
+  pdfImageUrl,
+  onAutoAlign
 }: OverlayControlsProps) => {
   const [scale, setScale] = useState([1]);
   const [opacity, setOpacity] = useState([0.7]);
   const [rotation, setRotation] = useState([0]);
+  const [isAutoAligning, setIsAutoAligning] = useState(false);
+  const [alignmentSuggestion, setAlignmentSuggestion] = useState<AlignmentSuggestion | null>(null);
 
   const handleScaleChange = (value: number[]) => {
     setScale(value);
@@ -69,7 +80,34 @@ export const OverlayControls = ({
     onScaleChange(1);
     onOpacityChange(0.7);
     onRotationChange(0);
+    setAlignmentSuggestion(null);
     toast.success("Overlay reset to default");
+  };
+
+  const handleAutoAlign = async () => {
+    if (!onAutoAlign || !isAIEnabled) return;
+    
+    setIsAutoAligning(true);
+    try {
+      await onAutoAlign();
+      toast.success('AI alignment completed');
+    } catch (error) {
+      console.error('Auto-alignment failed:', error);
+      toast.error('Auto-alignment failed. Please try manual adjustment.');
+    } finally {
+      setIsAutoAligning(false);
+    }
+  };
+
+  const handleAcceptAlignment = () => {
+    if (!alignmentSuggestion) return;
+    
+    setScale([alignmentSuggestion.scale]);
+    setRotation([alignmentSuggestion.rotation]);
+    onScaleChange(alignmentSuggestion.scale);
+    onRotationChange(alignmentSuggestion.rotation);
+    setAlignmentSuggestion(null);
+    toast.success('AI alignment applied');
   };
 
   return (
@@ -104,6 +142,60 @@ export const OverlayControls = ({
             Reset
           </Button>
         </div>
+
+        {isAIEnabled && overlayReady && (
+          <Button 
+            onClick={handleAutoAlign}
+            disabled={isAutoAligning}
+            className="w-full"
+          >
+            {isAutoAligning ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                AI Aligning...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Auto-Align with AI
+              </>
+            )}
+          </Button>
+        )}
+
+        {alignmentSuggestion && (
+          <Alert>
+            <Sparkles className="h-4 w-4" />
+            <AlertDescription>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">AI alignment suggestion</span>
+                  <Badge variant="secondary">
+                    {Math.round(alignmentSuggestion.confidence * 100)}% confidence
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {alignmentSuggestion.reasoning}
+                </p>
+                <div className="flex gap-2 mt-3">
+                  <Button 
+                    size="sm" 
+                    onClick={handleAcceptAlignment}
+                  >
+                    Apply Changes
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => setAlignmentSuggestion(null)}
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {overlayReady && (
           <>

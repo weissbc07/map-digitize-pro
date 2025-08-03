@@ -8,6 +8,8 @@ import { ZoningTypes, type ZoningType } from "@/components/zoning/zoning-types";
 import { DrawingTools } from "@/components/zoning/drawing-tools";
 import { ExportTools } from "@/components/zoning/export-tools";
 import { OverlayControls } from "@/components/zoning/overlay-controls";
+import { AISetup } from "@/components/zoning/ai-setup";
+import { initializeOpenAI, calculateAlignment } from "@/services/ai-vision";
 import { defaultZoningTypes } from "@/data/zoning-types";
 
 const Index = () => {
@@ -24,6 +26,7 @@ const Index = () => {
   const [overlayLayer, setOverlayLayer] = useState<any>(null);
   const [overlayVisible, setOverlayVisible] = useState(true);
   const [overlayReady, setOverlayReady] = useState(false);
+  const [isAIEnabled, setIsAIEnabled] = useState(false);
 
   const steps = [
     {
@@ -53,8 +56,15 @@ const Index = () => {
     }
   ];
 
-  // Initialize OpenLayers map
+  // Initialize AI and OpenLayers map
   useEffect(() => {
+    // Check for stored API key on mount
+    const storedApiKey = localStorage.getItem('openai_api_key');
+    if (storedApiKey) {
+      initializeOpenAI(storedApiKey);
+      setIsAIEnabled(true);
+    }
+
     const initMap = async () => {
       try {
         // Check if OpenLayers is available
@@ -228,6 +238,49 @@ const Index = () => {
     overlayLayer.setVisible(newVisible);
     setOverlayVisible(newVisible);
     toast.info(newVisible ? "Overlay shown" : "Overlay hidden");
+  };
+
+  const handleAIEnabledChange = () => {
+    const storedApiKey = localStorage.getItem('openai_api_key');
+    setIsAIEnabled(!!storedApiKey);
+  };
+
+  const captureMapScreenshot = (): Promise<string> => {
+    return new Promise((resolve) => {
+      if (!map) {
+        resolve('');
+        return;
+      }
+
+      map.once('rendercomplete', () => {
+        const mapCanvas = document.querySelector('.ol-viewport canvas') as HTMLCanvasElement;
+        if (mapCanvas) {
+          resolve(mapCanvas.toDataURL());
+        } else {
+          resolve('');
+        }
+      });
+      map.renderSync();
+    });
+  };
+
+  const handleAutoAlign = async () => {
+    if (!pdfImageData || !map) return;
+
+    // Capture current map view
+    const mapScreenshot = await captureMapScreenshot();
+    if (!mapScreenshot) {
+      throw new Error('Failed to capture map screenshot');
+    }
+
+    // Get AI alignment suggestion
+    const suggestion = await calculateAlignment(pdfImageData, mapScreenshot);
+    if (suggestion && overlayLayer) {
+      // Apply the suggested transformations
+      console.log('AI alignment suggestion:', suggestion);
+      handleOverlayScaleChange(suggestion.scale);
+      // Position and rotation would need more complex implementation
+    }
   };
 
   const handleStartDrawing = () => {
@@ -406,6 +459,12 @@ const Index = () => {
               />
             </div>
 
+            {/* AI Setup */}
+            <AISetup 
+              onAIEnabled={handleAIEnabledChange}
+              isAIEnabled={isAIEnabled}
+            />
+
             {/* Step Content */}
             <div className="space-y-6">
               {currentStep === "upload" && (
@@ -420,6 +479,8 @@ const Index = () => {
                     overlayVisible={overlayVisible}
                     onToggleOverlay={handleToggleOverlay}
                     overlayReady={overlayReady}
+                    isAIEnabled={isAIEnabled}
+                    pdfImageUrl={pdfImageData || undefined}
                   />
                   
                   {overlayReady && (
@@ -431,6 +492,9 @@ const Index = () => {
                       overlayVisible={overlayVisible}
                       onToggleOverlay={handleToggleOverlay}
                       overlayReady={overlayReady}
+                      isAIEnabled={isAIEnabled}
+                      pdfImageUrl={pdfImageData || undefined}
+                      onAutoAlign={handleAutoAlign}
                     />
                   )}
                 </div>

@@ -3,8 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { MapPin, Eye, EyeOff } from "lucide-react";
+import { MapPin, Eye, EyeOff, Sparkles, Loader2 } from "lucide-react";
+import { suggestCoordinates, type CoordinateSuggestion } from "@/services/ai-vision";
 
 interface GeoreferencingProps {
   onGeoreference: (bounds: [number, number, number, number]) => void;
@@ -12,6 +15,8 @@ interface GeoreferencingProps {
   overlayVisible: boolean;
   onToggleOverlay: () => void;
   overlayReady: boolean;
+  isAIEnabled: boolean;
+  pdfImageUrl?: string;
 }
 
 export const Georeferencing = ({
@@ -19,12 +24,16 @@ export const Georeferencing = ({
   disabled,
   overlayVisible,
   onToggleOverlay,
-  overlayReady
+  overlayReady,
+  isAIEnabled,
+  pdfImageUrl
 }: GeoreferencingProps) => {
   const [swLat, setSwLat] = useState("44.8200");
   const [swLng, setSwLng] = useState("-87.4000");
   const [neLat, setNeLat] = useState("44.8600");
   const [neLng, setNeLng] = useState("-87.3400");
+  const [aiSuggestion, setAISuggestion] = useState<CoordinateSuggestion | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const validateCoordinates = () => {
     const sw = [parseFloat(swLat), parseFloat(swLng)];
@@ -72,7 +81,36 @@ export const Georeferencing = ({
     setSwLng("-87.4000");
     setNeLat("44.8600");
     setNeLng("-87.3400");
+    setAISuggestion(null);
     toast.info("Coordinates set for Sturgeon Bay, WI");
+  };
+
+  const handleAIAnalysis = async () => {
+    if (!pdfImageUrl || !isAIEnabled) return;
+
+    setIsAnalyzing(true);
+    try {
+      const suggestion = await suggestCoordinates(pdfImageUrl);
+      if (suggestion) {
+        setAISuggestion(suggestion);
+      }
+    } catch (error) {
+      console.error('AI analysis failed:', error);
+      toast.error('AI analysis failed. Please check your API key.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleAcceptAISuggestion = () => {
+    if (!aiSuggestion) return;
+    
+    setSwLat(aiSuggestion.southwest.lat.toString());
+    setSwLng(aiSuggestion.southwest.lng.toString());
+    setNeLat(aiSuggestion.northeast.lat.toString());
+    setNeLng(aiSuggestion.northeast.lng.toString());
+    setAISuggestion(null);
+    toast.success('AI coordinates applied');
   };
 
   return (
@@ -155,6 +193,29 @@ export const Georeferencing = ({
           >
             Use Sturgeon Bay
           </Button>
+          
+          {isAIEnabled && pdfImageUrl && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleAIAnalysis}
+              disabled={isAnalyzing}
+              className="flex-1"
+            >
+              {isAnalyzing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  AI Detect
+                </>
+              )}
+            </Button>
+          )}
+          
           <Button
             variant="outline"
             size="sm"
@@ -166,6 +227,40 @@ export const Georeferencing = ({
             {overlayVisible ? "Hide" : "Show"}
           </Button>
         </div>
+
+        {aiSuggestion && (
+          <Alert className="mt-4">
+            <Sparkles className="h-4 w-4" />
+            <AlertDescription>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">AI detected location</span>
+                  <Badge variant="secondary">
+                    {Math.round(aiSuggestion.confidence * 100)}% confidence
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {aiSuggestion.reasoning}
+                </p>
+                <div className="flex gap-2 mt-3">
+                  <Button 
+                    size="sm" 
+                    onClick={handleAcceptAISuggestion}
+                  >
+                    Accept Suggestion
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => setAISuggestion(null)}
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
 
         <Button
           onClick={handleAddOverlay}
