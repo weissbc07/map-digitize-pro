@@ -12,6 +12,33 @@ export interface ZoningType {
   description?: string;
 }
 
+export interface DetectedLegend {
+  zones: ZoningType[];
+  confidence: number;
+  legendLocation: string;
+  mapScale?: string;
+  reasoning: string;
+}
+
+export interface VectorFeature {
+  id: string;
+  type: 'polygon' | 'rectangle' | 'circle' | 'freehand';
+  zoneType: ZoningType;
+  coordinates: number[][][];
+  properties: {
+    area: number;
+    perimeter: number;
+    created: string;
+    modified?: string;
+  };
+}
+
+export interface EditingMode {
+  type: 'select' | 'vertex' | 'split' | 'merge' | 'buffer' | 'measure';
+  active: boolean;
+  options?: any;
+}
+
 interface ZoningTypesProps {
   zoningTypes: ZoningType[];
   onUpdateZoningTypes: (types: ZoningType[]) => void;

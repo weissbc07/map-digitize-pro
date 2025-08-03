@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { StepIndicator } from "@/components/ui/step-indicator";
 import { PDFUpload } from "@/components/zoning/pdf-upload";
 import { Georeferencing } from "@/components/zoning/georeferencing";
@@ -9,8 +10,14 @@ import { DrawingTools } from "@/components/zoning/drawing-tools";
 import { ExportTools } from "@/components/zoning/export-tools";
 import { OverlayControls } from "@/components/zoning/overlay-controls";
 import { AISetup } from "@/components/zoning/ai-setup";
-import { initializeOpenAI, calculateAlignment } from "@/services/ai-vision";
+import { initializeOpenAI, calculateAlignment, detectZoningLegend } from "@/services/ai-vision";
 import { defaultZoningTypes } from "@/data/zoning-types";
+import { LegendDetection } from "@/components/zoning/legend-detection";
+import { VectorEditor } from "@/components/zoning/vector-editor";
+import { FeatureProperties } from "@/components/zoning/feature-properties";
+import { MapCropper } from "@/components/zoning/map-cropper";
+import { useVectorFeatures } from "@/hooks/use-vector-features";
+import type { DetectedLegend, EditingMode } from "@/components/zoning/zoning-types";
 
 const Index = () => {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -18,15 +25,20 @@ const Index = () => {
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [pdfImageData, setPdfImageData] = useState<string | null>(null);
+  const [croppedMapImage, setCroppedMapImage] = useState<string | null>(null);
+  const [croppedLegendImage, setCroppedLegendImage] = useState<string | null>(null);
   const [zoningTypes, setZoningTypes] = useState<ZoningType[]>(defaultZoningTypes);
   const [selectedZoneType, setSelectedZoneType] = useState<ZoningType | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [featureCount, setFeatureCount] = useState(0);
   const [map, setMap] = useState<any>(null);
   const [overlayLayer, setOverlayLayer] = useState<any>(null);
   const [overlayVisible, setOverlayVisible] = useState(true);
   const [overlayReady, setOverlayReady] = useState(false);
   const [isAIEnabled, setIsAIEnabled] = useState(false);
+  const [detectedLegend, setDetectedLegend] = useState<DetectedLegend | null>(null);
+  
+  // Use the vector features hook
+  const vectorFeatures = useVectorFeatures();
 
   const steps = [
     {
@@ -35,9 +47,19 @@ const Index = () => {
       description: "Upload your zoning map PDF file"
     },
     {
+      id: "crop",
+      title: "Smart Crop",
+      description: "Separate map and legend regions"
+    },
+    {
       id: "georeference",
       title: "Georeference",
       description: "Set map coordinates and overlay"
+    },
+    {
+      id: "legend",
+      title: "Detect Legend",
+      description: "AI-powered legend detection"
     },
     {
       id: "zones",
@@ -46,8 +68,8 @@ const Index = () => {
     },
     {
       id: "draw",
-      title: "Draw Zones",
-      description: "Digitize zone boundaries"
+      title: "Draw & Edit",
+      description: "Advanced vector editing tools"
     },
     {
       id: "export",
@@ -112,11 +134,29 @@ const Index = () => {
     setUploadedFile(file);
     setPdfImageData(imageData);
     setCompletedSteps(prev => [...prev, "upload"]);
+    setCurrentStep("crop");
+  };
+
+  const handleCroppedImages = (mapImage: string, legendImage?: string) => {
+    setCroppedMapImage(mapImage);
+    setCroppedLegendImage(legendImage || null);
+    setCompletedSteps(prev => [...prev, "crop"]);
+    setCurrentStep("georeference");
+  };
+
+  const handleSkipCropping = () => {
+    setCroppedMapImage(pdfImageData);
+    setCroppedLegendImage(null);
+    setCompletedSteps(prev => [...prev, "crop"]);
     setCurrentStep("georeference");
   };
 
   const handleGeoreference = (bounds: [number, number, number, number]) => {
-    if (!map || !pdfImageData) return;
+    if (!map) return;
+    
+    // Use cropped map image if available, otherwise fall back to original PDF
+    const imageToUse = croppedMapImage || pdfImageData;
+    if (!imageToUse) return;
 
     const ol = (window as any).ol;
     
@@ -127,7 +167,7 @@ const Index = () => {
 
     const newOverlay = new ol.layer.Image({
       source: new ol.source.ImageStatic({
-        url: pdfImageData,
+        url: imageToUse,
         imageExtent: ol.proj.transformExtent(bounds, 'EPSG:4326', 'EPSG:3857'),
       }),
       opacity: 0.7,
@@ -151,7 +191,7 @@ const Index = () => {
     map.getView().fit(extent, { padding: [20, 20, 20, 20] });
 
     setCompletedSteps(prev => [...prev, "georeference"]);
-    setCurrentStep("zones");
+    setCurrentStep("legend");
   };
 
   const handleOverlayScaleChange = (scale: number) => {
@@ -245,6 +285,25 @@ const Index = () => {
     setIsAIEnabled(!!storedApiKey);
   };
 
+  const handleLegendDetected = (legend: DetectedLegend) => {
+    setDetectedLegend(legend);
+  };
+
+  const handleZoneTypesAccepted = (detectedZoneTypes: ZoningType[]) => {
+    // Merge detected zone types with existing ones, avoiding duplicates
+    const existingCodes = zoningTypes.map(zt => zt.code);
+    const newZoneTypes = detectedZoneTypes.filter(zt => !existingCodes.includes(zt.code));
+    
+    setZoningTypes(prev => [...prev, ...newZoneTypes]);
+    setCompletedSteps(prev => [...prev, "legend"]);
+    setCurrentStep("zones");
+  };
+
+  const handleSkipLegendDetection = () => {
+    setCompletedSteps(prev => [...prev, "legend"]);
+    setCurrentStep("zones");
+  };
+
   const captureMapScreenshot = (): Promise<string> => {
     return new Promise((resolve) => {
       if (!map) {
@@ -283,12 +342,12 @@ const Index = () => {
     }
   };
 
-  const handleStartDrawing = () => {
+  const handleStartDrawing = (drawingType: 'polygon' | 'rectangle' | 'circle' | 'freehand' = 'polygon') => {
     if (!map || !selectedZoneType) return;
 
     const ol = (window as any).ol;
     
-    // Create vector source and layer for drawings
+    // Create vector source and layer for drawings if not exists
     let vectorSource = map.get('drawingSource');
     if (!vectorSource) {
       vectorSource = new ol.source.Vector();
@@ -311,22 +370,60 @@ const Index = () => {
       map.set('drawingSource', vectorSource);
     }
 
-    // Create draw interaction
-    const drawInteraction = new ol.interaction.Draw({
+    // Map drawing types to OpenLayers geometry types
+    const geometryTypeMap = {
+      polygon: 'Polygon',
+      rectangle: 'Circle', // We'll use Circle with regularSides for rectangle
+      circle: 'Circle',
+      freehand: 'Polygon'
+    };
+
+    const drawType = geometryTypeMap[drawingType] || 'Polygon';
+    
+    // Create draw interaction based on type
+    const drawOptions: any = {
       source: vectorSource,
-      type: 'Polygon'
-    });
+      type: drawType
+    };
+
+    if (drawingType === 'rectangle') {
+      drawOptions.geometryFunction = ol.interaction.Draw.createBox();
+    } else if (drawingType === 'freehand') {
+      drawOptions.freehand = true;
+    }
+
+    const drawInteraction = new ol.interaction.Draw(drawOptions);
 
     drawInteraction.on('drawend', (event: any) => {
       const feature = event.feature;
-      feature.setProperties({
-        zoneType: selectedZoneType,
-        zoneName: selectedZoneType.name,
-        zoneCode: selectedZoneType.code,
-        timestamp: new Date().toISOString()
-      });
+      const geometry = feature.getGeometry();
       
-      setFeatureCount(prev => prev + 1);
+      // Convert geometry to coordinates for our VectorFeature format
+      let coordinates: number[][][];
+      if (drawType === 'Circle') {
+        // Convert circle to polygon approximation
+        const center = geometry.getCenter();
+        const radius = geometry.getRadius();
+        const sides = drawingType === 'rectangle' ? 4 : 32;
+        const polygon = ol.geom.Polygon.circular(new ol.geom.Circle(center, radius), sides);
+        coordinates = polygon.getCoordinates();
+      } else {
+        coordinates = geometry.getCoordinates();
+      }
+
+      // Transform coordinates from map projection to WGS84
+      const transformedCoordinates = coordinates.map(ring => 
+        ring.map(coord => ol.proj.transform(coord, 'EPSG:3857', 'EPSG:4326'))
+      );
+
+      // Add to vector features hook
+      vectorFeatures.addFeature({
+        type: drawingType,
+        coordinates: transformedCoordinates,
+        zoneType: selectedZoneType
+      }, selectedZoneType);
+
+      // Feature count is now managed by vectorFeatures hook
       toast.success(`Zone ${selectedZoneType.code} added`);
     });
 
@@ -354,8 +451,9 @@ const Index = () => {
     const vectorSource = map.get('drawingSource');
     if (vectorSource) {
       vectorSource.clear();
-      setFeatureCount(0);
     }
+    
+    vectorFeatures.clearAllFeatures();
   };
 
   const handleExportGeoJSON = () => {
@@ -471,16 +569,25 @@ const Index = () => {
                 <PDFUpload onPDFUploaded={handlePDFUploaded} />
               )}
 
+              {currentStep === "crop" && pdfImageData && (
+                <MapCropper
+                  pdfImageUrl={pdfImageData}
+                  onCroppedImages={handleCroppedImages}
+                  onSkipCropping={handleSkipCropping}
+                  isAIEnabled={isAIEnabled}
+                />
+              )}
+
               {currentStep === "georeference" && (
                 <div className="space-y-4">
                   <Georeferencing
                     onGeoreference={handleGeoreference}
-                    disabled={!pdfImageData}
+                    disabled={!croppedMapImage && !pdfImageData}
                     overlayVisible={overlayVisible}
                     onToggleOverlay={handleToggleOverlay}
                     overlayReady={overlayReady}
                     isAIEnabled={isAIEnabled}
-                    pdfImageUrl={pdfImageData || undefined}
+                    pdfImageUrl={(croppedMapImage || pdfImageData) || undefined}
                   />
                   
                   {overlayReady && (
@@ -500,6 +607,25 @@ const Index = () => {
                 </div>
               )}
 
+              {currentStep === "legend" && (
+                <div className="space-y-4">
+                  <LegendDetection
+                    pdfImageUrl={(croppedLegendImage || pdfImageData) || undefined}
+                    onLegendDetected={handleLegendDetected}
+                    onZoneTypesAccepted={handleZoneTypesAccepted}
+                    isAIEnabled={isAIEnabled}
+                  />
+                  
+                  <Button
+                    variant="outline"
+                    onClick={handleSkipLegendDetection}
+                    className="w-full"
+                  >
+                    Skip Legend Detection
+                  </Button>
+                </div>
+              )}
+
               {(currentStep === "zones" || completedSteps.includes("zones")) && (
                 <ZoningTypes
                   zoningTypes={zoningTypes}
@@ -516,21 +642,54 @@ const Index = () => {
               )}
 
               {(currentStep === "draw" || completedSteps.includes("draw")) && (
-                <DrawingTools
-                  selectedZoneType={selectedZoneType}
-                  isDrawing={isDrawing}
-                  onStartDrawing={handleStartDrawing}
-                  onStopDrawing={handleStopDrawing}
-                  onClearAll={handleClearAll}
-                  featureCount={featureCount}
-                />
+                <div className="space-y-4">
+                  <VectorEditor
+                    selectedZoneType={selectedZoneType}
+                    editingMode={vectorFeatures.editingMode}
+                    onEditingModeChange={vectorFeatures.setEditingMode}
+                    onStartDrawing={handleStartDrawing}
+                    onStopDrawing={handleStopDrawing}
+                    isDrawing={isDrawing}
+                    selectedFeatures={vectorFeatures.selectedFeatures}
+                    onFeaturesSelected={(features) => vectorFeatures.selectFeatures(features.map(f => f.id))}
+                    onUndo={vectorFeatures.undo}
+                    onRedo={vectorFeatures.redo}
+                    canUndo={vectorFeatures.canUndo}
+                    canRedo={vectorFeatures.canRedo}
+                    snapTolerance={vectorFeatures.snapTolerance}
+                    onSnapToleranceChange={vectorFeatures.setSnapTolerance}
+                    snapEnabled={vectorFeatures.snapEnabled}
+                    onSnapEnabledChange={vectorFeatures.setSnapEnabled}
+                  />
+                  
+                  <FeatureProperties
+                    selectedFeatures={vectorFeatures.selectedFeatures}
+                    availableZoneTypes={zoningTypes}
+                    onUpdateFeature={vectorFeatures.updateFeature}
+                    onUpdateSelectedFeatures={vectorFeatures.updateSelectedFeatures}
+                    onSetZoneTypeForSelected={vectorFeatures.setZoneTypeForSelected}
+                  />
+                  
+                  <DrawingTools
+                    selectedZoneType={selectedZoneType}
+                    isDrawing={isDrawing}
+                    onStartDrawing={() => handleStartDrawing()}
+                    onStopDrawing={handleStopDrawing}
+                    onClearAll={handleClearAll}
+                    featureCount={vectorFeatures.features.length}
+                  />
+                </div>
               )}
 
-              {(currentStep === "export" || featureCount > 0) && (
+              {(currentStep === "export" || vectorFeatures.features.length > 0) && (
                 <ExportTools
                   onExportGeoJSON={handleExportGeoJSON}
                   onExportKML={handleExportKML}
-                  featureCount={featureCount}
+                  featureCount={vectorFeatures.features.length}
+                  features={vectorFeatures.features}
+                  zoningTypes={zoningTypes}
+                  detectedLegend={detectedLegend}
+                  pdfFileName={uploadedFile?.name}
                 />
               )}
             </div>
@@ -575,9 +734,9 @@ const Index = () => {
               <span className="text-muted-foreground">
                 Step: {steps.find(s => s.id === currentStep)?.title}
               </span>
-              {featureCount > 0 && (
+              {vectorFeatures.features.length > 0 && (
                 <span className="text-muted-foreground">
-                  Zones: {featureCount}
+                  Zones: {vectorFeatures.features.length}
                 </span>
               )}
             </div>

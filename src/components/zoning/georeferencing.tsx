@@ -28,10 +28,10 @@ export const Georeferencing = ({
   isAIEnabled,
   pdfImageUrl
 }: GeoreferencingProps) => {
-  const [swLat, setSwLat] = useState("44.8200");
-  const [swLng, setSwLng] = useState("-87.4000");
-  const [neLat, setNeLat] = useState("44.8600");
-  const [neLng, setNeLng] = useState("-87.3400");
+  const [swLat, setSwLat] = useState("44.8100");
+  const [swLng, setSwLng] = useState("-87.4100");
+  const [neLat, setNeLat] = useState("44.8700");
+  const [neLng, setNeLng] = useState("-87.3200");
   const [aiSuggestion, setAISuggestion] = useState<CoordinateSuggestion | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
@@ -77,10 +77,10 @@ export const Georeferencing = ({
   };
 
   const handlePresetSturgeon = () => {
-    setSwLat("44.8200");
-    setSwLng("-87.4000");
-    setNeLat("44.8600");
-    setNeLng("-87.3400");
+    setSwLat("44.8100");
+    setSwLng("-87.4100");
+    setNeLat("44.8700");
+    setNeLng("-87.3200");
     setAISuggestion(null);
     toast.info("Coordinates set for Sturgeon Bay, WI");
   };
@@ -136,7 +136,7 @@ export const Georeferencing = ({
               step="any"
               value={swLat}
               onChange={(e) => setSwLat(e.target.value)}
-              placeholder="44.8200"
+              placeholder="44.8100"
               className="bg-coordinate-input"
             />
           </div>
@@ -150,7 +150,7 @@ export const Georeferencing = ({
               step="any"
               value={swLng}
               onChange={(e) => setSwLng(e.target.value)}
-              placeholder="-87.4000"
+              placeholder="-87.4100"
               className="bg-coordinate-input"
             />
           </div>
@@ -164,7 +164,7 @@ export const Georeferencing = ({
               step="any"
               value={neLat}
               onChange={(e) => setNeLat(e.target.value)}
-              placeholder="44.8600"
+              placeholder="44.8700"
               className="bg-coordinate-input"
             />
           </div>
@@ -178,7 +178,7 @@ export const Georeferencing = ({
               step="any"
               value={neLng}
               onChange={(e) => setNeLng(e.target.value)}
-              placeholder="-87.3400"
+              placeholder="-87.3200"
               className="bg-coordinate-input"
             />
           </div>
