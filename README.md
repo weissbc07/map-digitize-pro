@@ -2,7 +2,7 @@
 
 ## Overview
 
-An **AI-powered web application** for digitizing and analyzing zoning maps from PDF documents. This tool streamlines the conversion of static zoning PDFs into **interactive, editable vector data** for urban planning and GIS workflows.
+An **AI-powered web application** for digitizing and analyzing zoning maps from PDF documents. This tool streamlines the conversion of static zoning PDFs into **interactive, editable vector data** for urban planning and GIS workflows. Bring your own API key and you're off to the races.
 
 ---
 
