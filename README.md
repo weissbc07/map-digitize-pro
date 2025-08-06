@@ -5,6 +5,7 @@
 An **AI-powered web application** for digitizing and analyzing zoning maps from PDF documents. This tool streamlines the conversion of static zoning PDFs into **interactive, editable vector data** for urban planning and GIS workflows. Bring your own API key and you're off to the races.
 
 ---
+![Alt text](https://github.com/weissbc07/map-digitize-pro/blob/main/public/featured.png?raw=true "Map Digitize Pro")
 
 ## 🔑 Key Features
 
